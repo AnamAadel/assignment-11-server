@@ -1,6 +1,7 @@
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const express  = require("express");
-const cors = require("cors")
+const cors = require("cors");
+const pickRandomTeam = require('./randomUser');
 
 require("dotenv").config()
 
@@ -78,34 +79,26 @@ app.get("/my_services", async (req, res)=> {
     // console.log(productData)
     res.send(myServices);
 })
-
-// created api to get banner data
-app.get("/new_product/all", async (req, res)=> {
-    const cursor = newserviceCollection.find();
-    const bannerData = await cursor.toArray();
-    // console.log(productData)
-    res.send(bannerData);
+// created api to detect current user
+app.get("/random_team", async (req, res)=> {
+  const randomProvider = pickRandomTeam();
+  res.send(randomProvider);
 })
 
-// created api to get banner data
-app.get("/facilities/all", async (req, res)=> {
-    const cursor = facilitiesCollection.find();
-    const facilitiesData = await cursor.toArray();
-    // console.log(productData)
-    res.send(facilitiesData);
-})
 
 
 
 
 // created api to get product data by id
-app.get("/products/type/:id", async (req, res)=> {
-    const id = req.params.id;
-    const query = {type: id}
-    const cursor = await serviceCollection.find(query);
-    const productData = await cursor.toArray();
+app.get("/service/:id", async (req, res)=> {
+  const id = req.params.id;
+  const query = {_id: new ObjectId(id)}
+  const userData = await usersCollection.findOne(query);
+
+    const randomProvider = pickRandomTeam();
+    userData.provider = randomProvider;
     // const userData = await cursor.toArray();
-    res.send(productData);
+    res.send(userData);
 })
 
 
