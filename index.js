@@ -2,16 +2,15 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const express  = require("express");
 const cors = require("cors")
 
+require("dotenv").config()
+
 // const user = []
 
 const app = express();
 const port = process.env.PORT || 5000;
 
-// nuW3ykVIrM2bSURo
-// Aadel_8991
 
-
-const uri = "mongodb+srv://Aadel_8991:nuW3ykVIrM2bSURo@cluster0.otazdf5.mongodb.net/?retryWrites=true&w=majority";
+const uri = `mongodb+srv://${process.env.USER_NAME}:${process.env.USER_PASS}@cluster0.otazdf5.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -28,7 +27,6 @@ async function run() {
     await client.connect();
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
-    const user = [{name: "anam", email: "amin@gmail.com"}];
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
     
@@ -44,37 +42,46 @@ run().catch(console.dir);
 
 
 
-
-app.use(cors())
-app.use(express.json());
-
-const db = client.db("shopDb");
-const productCollection = db.collection("products");
+const db = client.db("serviceDB");
+const serviceCollection = db.collection("services");
 const usersCollection = db.collection("users");
-const brandCollection = db.collection("brandData");
-const newProductCollection = db.collection("heroProduct");
-const facilitiesCollection = db.collection("facilities");
+const addedServiceCollection = db.collection("userService");
+
+
+// Create a MongoClient with a MongoClientOptions object to set the Stable API version
+
+
+
+
+
+
+app.use(cors({
+  origin: ["http://localhost:5173"],
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+  credentials: true
+}))
+app.use(express.json());
 
 // create api to get all data
 
-app.get("/products/all", async (req, res)=> {
-    const cursor = productCollection.find();
+app.get("/services/all", async (req, res)=> {
+    const cursor = serviceCollection.find();
     const productData = await cursor.toArray();
     // console.log(productData)
     res.send(productData);
 })
 
-// created api to get brand data
-app.get("/brands/all", async (req, res)=> {
-    const cursor = brandCollection.find();
-    const brandData = await cursor.toArray();
+// created api to get my service data
+app.get("/my_services", async (req, res)=> {
+    const cursor = addedServiceCollection.find();
+    const myServices = await cursor.toArray();
     // console.log(productData)
-    res.send(brandData);
+    res.send(myServices);
 })
 
 // created api to get banner data
 app.get("/new_product/all", async (req, res)=> {
-    const cursor = newProductCollection.find();
+    const cursor = newserviceCollection.find();
     const bannerData = await cursor.toArray();
     // console.log(productData)
     res.send(bannerData);
@@ -88,30 +95,14 @@ app.get("/facilities/all", async (req, res)=> {
     res.send(facilitiesData);
 })
 
-// created api to get banner data by brand name
-app.get("/brands/:id", async (req, res)=> {
-    const id = req.params.id;
-    const query = {brand: id}
-    const cursor = await productCollection.find(query);
-    const userData = await cursor.toArray();
-    res.send(userData);
-})
 
-// created api to get product data by id
-app.get("/products/:id", async (req, res)=> {
-    const id = req.params.id;
-    const query = {_id: new ObjectId(id)}
-    const productData = await productCollection.findOne(query);
-    // const userData = await cursor.toArray();
-    res.send(productData);
-})
 
 
 // created api to get product data by id
 app.get("/products/type/:id", async (req, res)=> {
     const id = req.params.id;
     const query = {type: id}
-    const cursor = await productCollection.find(query);
+    const cursor = await serviceCollection.find(query);
     const productData = await cursor.toArray();
     // const userData = await cursor.toArray();
     res.send(productData);
@@ -120,12 +111,12 @@ app.get("/products/type/:id", async (req, res)=> {
 
 
 // created api to add products
-app.post("/products", async (req, res)=> {
+app.post("/service_add" , async (req, res)=> {
     console.log(req.body)
 
     const productData = req.body;
 
-    const result = await productCollection.insertOne(productData);
+    const result = await addedServiceCollection.insertOne(productData);
     console.log(result);
     
     
@@ -145,7 +136,7 @@ app.put("/products/update/:id", async (req, res)=> {
 
     const options = {upsert: true}
 
-    const result = await productCollection.updateOne(query, updatedData, options);
+    const result = await serviceCollection.updateOne(query, updatedData, options);
 
     console.log(result);
     res.send(result)
@@ -193,6 +184,30 @@ app.get("/users/:id", async (req, res)=> {
     res.send(userData);
 })
 
+
+// created api to add new user
+app.post("/users/add", async (req, res)=> {
+  console.log(req.body)
+
+  const cursor = usersCollection.find();
+  const allUsers = await cursor.toArray();
+  
+  const productData = req.body;
+  const userIndex = allUsers.findIndex((item)=> item.email === productData.email);
+
+  if(userIndex >= 0){
+    
+    res.status(200).send({message: "user login successfully"});
+    
+  }else{
+    const result = await usersCollection.insertOne(productData);
+    console.log(result);
+    
+    res.send(result);
+
+  }
+
+})
 
 // created api to detect current user
 app.post("/users/current-user", async (req, res)=> {
