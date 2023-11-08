@@ -173,6 +173,26 @@ app.post("/service_add" , async (req, res)=> {
 
 
 // created api to add products
+app.get("/my_bookings" , async (req, res)=> {
+  const query = req.query.email
+  console.log(query)
+  const cursor = bookedServiceCollection.find({userEmail: query});
+  const myServices = await cursor.toArray();
+  res.send(myServices);
+})
+
+
+// created api to add products
+app.get("/pending_work" , async (req, res)=> {
+  const query = req.query.email
+  const cursor = bookedServiceCollection.find({providerEmail: query});
+  const myServices = await cursor.toArray();
+  console.log(query)
+  res.send(myServices);
+})
+
+
+// created api to add products
 app.post("/book_service" , async (req, res)=> {
     console.log(req.body)
 
