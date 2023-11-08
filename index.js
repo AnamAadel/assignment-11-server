@@ -47,6 +47,7 @@ const db = client.db("serviceDB");
 const serviceCollection = db.collection("services");
 const usersCollection = db.collection("users");
 const addedServiceCollection = db.collection("userService");
+const bookedServiceCollection = db.collection("bookedServices");
 
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -74,10 +75,19 @@ app.get("/services/all", async (req, res)=> {
 // create api to get limited data
 app.get("/services", async (req, res)=> {
   const limit = parseInt(req.query.limit);
-  console.log(limit)
+  console.log("limit")
     const cursor = serviceCollection.find().limit(limit);
-    const productData = await cursor.toArray();
-    res.send(productData);
+    const serviceData = await cursor.toArray();
+    res.send(serviceData);
+})
+
+// create api to get data by search
+app.post("/services", async (req, res)=> {
+  const search = req.body.search;
+  console.log("search")
+    const cursor = serviceCollection.find({$or: [{serviceName: search}, {category: search}]});
+    const serviceData = await cursor.toArray();
+    res.send(serviceData);
 })
 
 // create api to get all category
@@ -140,6 +150,20 @@ app.post("/service_add" , async (req, res)=> {
     const productData = req.body;
 
     const result = await addedServiceCollection.insertOne(productData);
+    console.log(result);
+    
+    
+    res.send(result);
+})
+
+
+// created api to add products
+app.post("/book_service" , async (req, res)=> {
+    console.log(req.body)
+
+    const productData = req.body;
+
+    const result = await bookedServiceCollection.insertOne(productData);
     console.log(result);
     
     
