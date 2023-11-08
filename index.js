@@ -193,6 +193,37 @@ app.get("/pending_work" , async (req, res)=> {
 
 
 // created api to add products
+app.put("/pending_work/:id" , async (req, res)=> {
+  const id = req.params.id;
+    const query = {_id: new ObjectId(id)};
+    const data = req.body;
+    delete data._id
+    const updatedData = {
+      $set: data,
+    };
+
+    console.log(data)
+
+    const options = {upsert: true}
+
+    const result = await bookedServiceCollection.updateOne(query, updatedData, options);
+
+    console.log(result);
+    res.send(result)
+})
+
+app.delete("/pending_work/delete/:id", async (req, res)=> {
+  const id = req.params.id;
+    const query = {_id: new ObjectId(id)};
+    const result = await bookedServiceCollection.deleteOne(query);
+  // const userData = await cursor.toArray();
+
+  res.send(result)
+
+})
+
+
+// created api to add products
 app.post("/book_service" , async (req, res)=> {
     console.log(req.body)
 
