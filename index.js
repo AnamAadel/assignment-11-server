@@ -103,9 +103,10 @@ app.get("/services/categories", async (req, res)=> {
 
 // created api to get my service data
 app.get("/my_services", async (req, res)=> {
-    const cursor = addedServiceCollection.find();
+    const query = req.query.email
+    const cursor = serviceCollection.find({providerEmail: query});
     const myServices = await cursor.toArray();
-    // console.log(productData)
+    console.log(query)
     res.send(myServices);
 })
 // created api to detect current user
@@ -131,8 +132,22 @@ app.get("/service/:id", async (req, res)=> {
     res.send(userData);
 })
 
+
+// created api to update service data by id
+app.get("/service_update/:id", async (req, res)=> {
+  const id = req.params.id;
+  const query = {_id: new ObjectId(id)}
+  const userData = await serviceCollection.findOne(query);
+
+    const randomProvider = pickRandomTeam();
+    userData.serviceProvider = randomProvider;
+    console.log(userData)
+    // const userData = await cursor.toArray();
+    res.send(userData);
+})
+
 // created api to get product data by category
-app.get("/services/:id", async (req, res)=> {
+app.get("/services/type/:id", async (req, res)=> {
   const type = req.params.id;
   console.log(type);
   const query = {category: type}
@@ -149,7 +164,7 @@ app.post("/service_add" , async (req, res)=> {
 
     const productData = req.body;
 
-    const result = await addedServiceCollection.insertOne(productData);
+    const result = await serviceCollection.insertOne(productData);
     console.log(result);
     
     
@@ -171,7 +186,7 @@ app.post("/book_service" , async (req, res)=> {
 })
 
 // created api to update product data by id
-app.put("/products/update/:id", async (req, res)=> {
+app.put("/service_update/:id", async (req, res)=> {
     const id = req.params.id;
     const query = {_id: new ObjectId(id)};
 
