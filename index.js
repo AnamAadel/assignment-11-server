@@ -68,8 +68,27 @@ app.use(express.json());
 app.get("/services/all", async (req, res)=> {
     const cursor = serviceCollection.find();
     const productData = await cursor.toArray();
-    // console.log(productData)
     res.send(productData);
+})
+
+// create api to get limited data
+app.get("/services", async (req, res)=> {
+  const limit = parseInt(req.query.limit);
+  console.log(limit)
+    const cursor = serviceCollection.find().limit(limit);
+    const productData = await cursor.toArray();
+    res.send(productData);
+})
+
+// create api to get all category
+
+app.get("/services/categories", async (req, res)=> {
+    const cursor = serviceCollection.find();
+    const productData = await cursor.toArray();
+    const categories = productData.map((item)=> item.category);
+    const uniqCategories = [...new Set(categories)] 
+    // console.log(productData)
+    res.send(uniqCategories);
 })
 
 // created api to get my service data
@@ -93,12 +112,23 @@ app.get("/random_team", async (req, res)=> {
 app.get("/service/:id", async (req, res)=> {
   const id = req.params.id;
   const query = {_id: new ObjectId(id)}
-  const userData = await usersCollection.findOne(query);
+  const userData = await serviceCollection.findOne(query);
 
     const randomProvider = pickRandomTeam();
-    userData.provider = randomProvider;
+    userData.serviceProvider = randomProvider;
+    console.log(userData)
     // const userData = await cursor.toArray();
     res.send(userData);
+})
+
+// created api to get product data by category
+app.get("/services/:id", async (req, res)=> {
+  const type = req.params.id;
+  console.log(type);
+  const query = {category: type}
+  const serviceData = await serviceCollection.find(query).toArray();
+    console.log(serviceData)
+    res.send(serviceData);
 })
 
 
@@ -136,7 +166,7 @@ app.put("/products/update/:id", async (req, res)=> {
 })
 
 // created api to add user
-app.post("/users", async (req, res)=> {
+app.post("/add_user", async (req, res)=> {
     console.log(req.body)
 
     const cursor = usersCollection.find();
@@ -157,6 +187,14 @@ app.post("/users", async (req, res)=> {
 
     }
 
+})
+
+// created api to detect current user
+app.get("/users/all", async (req, res)=> {
+    const cursor = usersCollection.find();
+    const userData = await cursor.toArray();
+    // console.log(productData)
+    res.send(userData);
 })
 
 // created api to detect current user
