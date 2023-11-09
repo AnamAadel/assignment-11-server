@@ -1,8 +1,8 @@
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const express  = require("express");
 const cors = require("cors");
-const pickRandomTeam = require('./randomUser');
-
+const jwt = require("jsonwebtoken");
+var cookieParser = require('cookie-parser')
 require("dotenv").config()
 
 // const user = []
@@ -10,6 +10,7 @@ require("dotenv").config()
 const app = express();
 const port = process.env.PORT || 5000;
 
+app.use(cookieParser())
 
 const uri = `mongodb+srv://${process.env.USER_NAME}:${process.env.USER_PASS}@cluster0.otazdf5.mongodb.net/?retryWrites=true&w=majority`;
 
@@ -47,7 +48,9 @@ const db = client.db("serviceDB");
 const serviceCollection = db.collection("services");
 const usersCollection = db.collection("users");
 const addedServiceCollection = db.collection("userService");
+const sellingPointsCollection = db.collection("sellingPoints");
 const bookedServiceCollection = db.collection("bookedServices");
+const ourTeamsCollection = db.collection("ourTeams");
 
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -58,16 +61,60 @@ const bookedServiceCollection = db.collection("bookedServices");
 
 
 app.use(cors({
-  origin: ["http://localhost:5173"],
+  origin: ["http://localhost:5173" , "https://assignment-11-cqrc.vercel.app", "https://assignment-11-cqrc-git-master-aadelbanat8991-gmailcom.vercel.app", "assignment-11-cqrc-3otz6oqhf-aadelbanat8991-gmailcom.vercel.app"],
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   credentials: true
 }))
 app.use(express.json());
 
+
+const verifyToken = (req, res, next)=> {
+  const token = req.cookies.accessToken;
+  console.log()
+
+  if(!token){
+    return res.status(401).send({error: "not authorized!"});
+  }else{
+    jwt.verify(token, "secret", (err, decoded)=> {
+      if(err){
+        return res.status(401).send({error: "unauthorized"})
+      }
+      console.log(decoded.email);
+      console.log(req.query.email);
+
+      if(decoded.email === req.query.email){
+        req.user = decoded;
+        next();
+
+      }else{
+        return res.status(403).send({error: "forbidden!"})
+      }
+    })
+  }
+}
+
 // create api to get all data
 
 app.get("/services/all", async (req, res)=> {
     const cursor = serviceCollection.find();
+    const productData = await cursor.toArray();
+    res.send(productData);
+})
+
+
+// create api to get selling points  data
+
+app.get("/selling_points", async (req, res)=> {
+    const cursor = sellingPointsCollection.find();
+    const productData = await cursor.toArray();
+    res.send(productData);
+})
+
+
+// create api to get selling points  data
+
+app.get("/our_teams", async (req, res)=> {
+    const cursor = ourTeamsCollection.find();
     const productData = await cursor.toArray();
     res.send(productData);
 })
@@ -82,7 +129,7 @@ app.get("/services", async (req, res)=> {
 })
 
 // create api to get data by search
-app.post("/services", async (req, res)=> {
+app.post("/services",  async (req, res)=> {
   const search = req.body.search;
   console.log("search")
     const cursor = serviceCollection.find({$or: [{serviceName: search}, {category: search}]});
@@ -92,7 +139,7 @@ app.post("/services", async (req, res)=> {
 
 // create api to get all category
 
-app.get("/services/categories", async (req, res)=> {
+app.get("/services/categories" , async (req, res)=> {
     const cursor = serviceCollection.find();
     const productData = await cursor.toArray();
     const categories = productData.map((item)=> item.category);
@@ -102,52 +149,34 @@ app.get("/services/categories", async (req, res)=> {
 })
 
 // created api to get my service data
-app.get("/my_services", async (req, res)=> {
+app.get("/my_services" , async (req, res)=> {
     const query = req.query.email
     const cursor = serviceCollection.find({providerEmail: query});
     const myServices = await cursor.toArray();
     console.log(query)
     res.send(myServices);
 })
-// created api to detect current user
-app.get("/random_team", async (req, res)=> {
-  const randomProvider = pickRandomTeam();
-  res.send(randomProvider);
-})
-
-
-
-
 
 // created api to get product data by id
-app.get("/service/:id", async (req, res)=> {
+app.get("/service/:id" , async (req, res)=> {
   const id = req.params.id;
   const query = {_id: new ObjectId(id)}
   const userData = await serviceCollection.findOne(query);
-
-    const randomProvider = pickRandomTeam();
-    userData.serviceProvider = randomProvider;
-    console.log(userData)
     // const userData = await cursor.toArray();
     res.send(userData);
 })
 
 
 // created api to update service data by id
-app.get("/service_update/:id", async (req, res)=> {
+app.get("/service_update/:id" , async (req, res)=> {
   const id = req.params.id;
   const query = {_id: new ObjectId(id)}
   const userData = await serviceCollection.findOne(query);
-
-    const randomProvider = pickRandomTeam();
-    userData.serviceProvider = randomProvider;
-    console.log(userData)
-    // const userData = await cursor.toArray();
     res.send(userData);
 })
 
 // created api to get product data by category
-app.get("/services/type/:id", async (req, res)=> {
+app.get("/services/type/:id" , async (req, res)=> {
   const type = req.params.id;
   console.log(type);
   const query = {category: type}
@@ -159,7 +188,7 @@ app.get("/services/type/:id", async (req, res)=> {
 
 
 // created api to add products
-app.post("/service_add" , async (req, res)=> {
+app.post("/service_add"  , async (req, res)=> {
     console.log(req.body)
 
     const productData = req.body;
@@ -173,7 +202,7 @@ app.post("/service_add" , async (req, res)=> {
 
 
 // created api to add products
-app.get("/my_bookings" , async (req, res)=> {
+app.get("/my_bookings"  , async (req, res)=> {
   const query = req.query.email
   console.log(query)
   const cursor = bookedServiceCollection.find({userEmail: query});
@@ -183,7 +212,17 @@ app.get("/my_bookings" , async (req, res)=> {
 
 
 // created api to add products
-app.get("/pending_work" , async (req, res)=> {
+app.get("/provider_service" , async (req, res)=> {
+  const query = req.query.email
+  console.log(query)
+  const cursor = serviceCollection.find({"serviceProvider.providerEmail" :query});
+  const myServices = await cursor.toArray();
+  res.send(myServices);
+})
+
+
+// created api to add products
+app.get("/pending_work"  , async (req, res)=> {
   const query = req.query.email
   const cursor = bookedServiceCollection.find({providerEmail: query});
   const myServices = await cursor.toArray();
@@ -193,7 +232,7 @@ app.get("/pending_work" , async (req, res)=> {
 
 
 // created api to add products
-app.put("/pending_work/:id" , async (req, res)=> {
+app.put("/pending_work/:id"  , async (req, res)=> {
   const id = req.params.id;
     const query = {_id: new ObjectId(id)};
     const data = req.body;
@@ -212,10 +251,21 @@ app.put("/pending_work/:id" , async (req, res)=> {
     res.send(result)
 })
 
-app.delete("/pending_work/delete/:id", async (req, res)=> {
+app.delete("/pending_work/delete/:id" , async (req, res)=> {
   const id = req.params.id;
     const query = {_id: new ObjectId(id)};
     const result = await bookedServiceCollection.deleteOne(query);
+  // const userData = await cursor.toArray();
+
+  res.send(result)
+
+})
+
+
+app.delete("/my_services/delete/:id" , async (req, res)=> {
+  const id = req.params.id;
+    const query = {_id: new ObjectId(id)};
+    const result = await serviceCollection.deleteOne(query);
   // const userData = await cursor.toArray();
 
   res.send(result)
@@ -237,7 +287,7 @@ app.post("/book_service" , async (req, res)=> {
 })
 
 // created api to update product data by id
-app.put("/service_update/:id", async (req, res)=> {
+app.put("/service_update/:id" , async (req, res)=> {
     const id = req.params.id;
     const query = {_id: new ObjectId(id)};
 
@@ -256,73 +306,67 @@ app.put("/service_update/:id", async (req, res)=> {
 })
 
 // created api to add user
-app.post("/add_user", async (req, res)=> {
-    console.log(req.body)
+// app.post("/add_user", async (req, res)=> {
+//     console.log(req.body)
 
-    const cursor = usersCollection.find();
-    const allUsers = await cursor.toArray();
+//     const cursor = usersCollection.find();
+//     const allUsers = await cursor.toArray();
     
-    const productData = req.body;
-    const userIndex = allUsers.findIndex((item)=> item.email === productData.email);
+//     const productData = req.body;
+//     const userIndex = allUsers.findIndex((item)=> item.email === productData.email);
 
-    if(userIndex >= 0){
+//     if(userIndex >= 0){
       
-      res.status(200).send({message: "user login successfully"});
+//       res.status(200).send({message: "user login successfully"});
       
-    }else{
-      const result = await usersCollection.insertOne(productData);
-      console.log(result);
+//     }else{
+//       const result = await usersCollection.insertOne(productData);
+//       console.log(result);
       
-      res.send(result);
+//       res.send(result);
 
-    }
+//     }
 
-})
+// })
 
-// created api to detect current user
-app.get("/users/all", async (req, res)=> {
-    const cursor = usersCollection.find();
-    const userData = await cursor.toArray();
-    // console.log(productData)
-    res.send(userData);
-})
-
-// created api to detect current user
-app.get("/users/all", async (req, res)=> {
-    const cursor = usersCollection.find();
-    const userData = await cursor.toArray();
-    // console.log(productData)
-    res.send(userData);
-})
-
-// created api to detect current user
-app.get("/users/:id", async (req, res)=> {
-    const id = req.params.id;
-    const query = {_id: new ObjectId(id)}
-    const userData = await usersCollection.findOne(query);
-    // const userData = await cursor.toArray();
-    // console.log(productData)
-    res.send(userData);
-})
-
-
-// created api to add new user
-app.post("/users/add", async (req, res)=> {
+// created api to add user
+app.post("/add_user", async (req, res)=> {
   console.log(req.body)
 
   const cursor = usersCollection.find();
   const allUsers = await cursor.toArray();
   
-  const productData = req.body;
-  const userIndex = allUsers.findIndex((item)=> item.email === productData.email);
+  const userData = req.body;
+  const userIndex = allUsers.findIndex((item)=> item.email === userData.email);
+  console.log(userData)
 
   if(userIndex >= 0){
+
+    const token = jwt.sign(userData, "secret", {expiresIn: "1h"})
     
-    res.status(200).send({message: "user login successfully"});
+    // console.log(token);
+
+    res.cookie("accessToken",token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: false
+    })
+
+    res.status(200).send({msg: "user Login successfully!"})
     
   }else{
-    const result = await usersCollection.insertOne(productData);
-    console.log(result);
+    const result = await usersCollection.insertOne(userData);
+    
+
+    const token = jwt.sign(userData, "secret", {expiresIn: "1h"})
+    
+    // console.log(token);
+
+    res.cookie("accessToken",token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: false
+    })
     
     res.send(result);
 
@@ -330,52 +374,16 @@ app.post("/users/add", async (req, res)=> {
 
 })
 
-// created api to detect current user
-app.post("/users/current-user", async (req, res)=> {
-    const query = req.body;
-    // const query = {_id: new ObjectId(id)}
-    const userData = await usersCollection.findOne(query);
-    // const userData = await cursor.toArray();
-    res.send(userData);
+
+app.delete("/logout", async (req, res)=> {
+  const token = req.cookies.accessToken;
+
+  console.log(token);
+  console.log("accessToken");
+
+  res.clearCookie("accessToken");
+
 })
-
-// created api to update user
-app.put("/users/update/:id", async (req, res)=> {
-    const id = req.params.id;
-    const query = {_id: new ObjectId(id)};
-    const userData = await usersCollection.findOne(query);
-    // const userData = await cursor.toArray();
-    let updatedData = {};
-    if(userData.products){
-      const productId = req.body._id;
-      const productIndex = userData.products.findIndex((item)=> item._id === productId);
-      
-      if(productIndex >= 0){
-        userData.products.splice(productIndex, 1, req.body);
-        updatedData = {
-          $set: {products: userData.products},
-        };
-      }else{
-        const newProduct = [...userData.products, req.body];
-        updatedData = {
-          $set: {products: newProduct},
-        };
-      }
-      
-    }else{
-      updatedData = {
-        $set: {products: [req.body]},
-      };
-      
-    }
-    const options = {upsert: true}
-
-    const result = await usersCollection.updateOne(query, updatedData, options);
-
-    console.log(result);
-    res.send(result)
-})
-
 
 app.delete("/users/delete/:id", async (req, res)=> {
   const id = req.params.id;
