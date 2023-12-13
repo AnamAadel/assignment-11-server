@@ -149,7 +149,7 @@ app.get("/my_services" , async (req, res)=> {
     const query = req.query.email
     const cursor = serviceCollection.find({providerEmail: query});
     const myServices = await cursor.toArray();
-    console.log(query)
+    
     res.send(myServices);
 })
 
